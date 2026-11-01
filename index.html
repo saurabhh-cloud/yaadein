@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yaadein</title>
+<style>
+:root{--bg:#1b1018;--card:#2a1824;--ink:#fdf3e4;--muted:#c9a9b8;--gold:#ffb347;--marigold:#ff8c1a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,'Times New Roman',serif;background:radial-gradient(circle at 50% 0,#3a1f33,#1b1018 60%);color:var(--ink);min-height:100vh}
+main{max-width:720px;margin:0 auto;padding:22px 16px 60px}
+h1{margin:0;color:var(--gold);font-weight:600} .sub{color:var(--muted);margin:4px 0 20px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;border:1px solid #4a2c40}
+label{display:block;font-weight:600;margin:12px 0 4px;font-family:system-ui,sans-serif;font-size:.9rem;color:var(--muted)}
+input,textarea,select{width:100%;padding:10px;border:1px solid #5a3a50;border-radius:8px;font:inherit;background:#1b1018;color:var(--ink)}
+textarea{min-height:70px}
+.row{display:flex;gap:10px;flex-wrap:wrap} .row>*{flex:1;min-width:150px}
+button{background:var(--marigold);color:#2a1200;border:0;border-radius:8px;padding:11px 18px;font:inherit;font-weight:700;cursor:pointer;margin:14px 8px 0 0}
+button.sec{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+button:disabled{opacity:.6}
+#status{color:var(--muted);margin-top:8px;font-family:system-ui,sans-serif;font-size:.9rem}
+#ofrenda{text-align:center}
+.candle{display:inline-block;font-size:2rem;animation:flick 2s infinite alternate}
+@keyframes flick{from{opacity:.75;transform:scale(.97)}to{opacity:1;transform:scale(1.05)}}
+.name{font-size:1.8rem;color:var(--gold);margin:6px 0}
+.dates{color:var(--muted);margin-bottom:12px}
+.chips{margin:10px 0}.chip{display:inline-block;background:#3a2133;border-radius:20px;padding:5px 12px;margin:3px;font-size:.95rem}
+#text{white-space:pre-wrap;line-height:1.8;font-size:1.1rem;text-align:left;margin-top:14px}
+.note{font-size:.8rem;color:var(--muted);font-family:system-ui,sans-serif}
+@media print{body{background:#fff;color:#000}.card{border:0;background:#fff}.noprint,details{display:none!important}.name,.dates{color:#000}.chip{background:#eee}}
+</style>
+</head>
+<body>
+<main>
+<div class="noprint">
+<h1>🕯️ Yaadein</h1>
+<p class="sub">A quiet place to remember someone you love. Your stories are written into a remembrance by an AI model running on your own computer. Nothing is uploaded anywhere.</p>
+
+<div class="card">
+  <div class="row">
+    <div><label for="name">Their name</label><input id="name" placeholder="e.g. Dadi"></div>
+    <div><label for="years">Years (optional)</label><input id="years" placeholder="e.g. 1946 – 2024"></div>
+  </div>
+  <label for="foods">Favourite foods</label><input id="foods" placeholder="e.g. gajar ka halwa, chai with rusk">
+  <label for="songs">Favourite songs</label><input id="songs" placeholder="e.g. Lag Ja Gale">
+  <label for="story">A story or memory (a few lines)</label>
+  <textarea id="story" placeholder="e.g. She used to hide sweets in the steel dabba and pretend she did not know where they went."></textarea>
+  <div class="row">
+    <div><label for="lang">Language</label><select id="lang"><option>English</option><option>Hindi</option><option>Hinglish</option></select></div>
+    <div><label for="who">You are their</label><input id="who" placeholder="e.g. grandson"></div>
+  </div>
+  <button id="go">Light a candle 🕯️</button>
+  <div id="status"></div>
+</div>
+</div>
+
+<div class="card" id="ofrenda" hidden>
+  <div class="candle">🕯️</div>
+  <div class="name" id="oName"></div>
+  <div class="dates" id="oYears"></div>
+  <div class="chips" id="oChips"></div>
+  <div id="text"></div>
+  <div class="noprint">
+    <button class="sec" id="print">🖨️ Print / save as PDF</button>
+    <button class="sec" id="copy">Copy</button>
+  </div>
+</div>
+
+<details class="card noprint">
+  <summary>Settings (model &amp; server)</summary>
+  <label for="url">Model server URL (Ollama)</label><input id="url" value="http://localhost:11434">
+  <label for="model">Model name</label><input id="model" value="gemma3:1b">
+  <p class="note">Runs Google's open-weight Gemma model through Ollama on this computer. The remembrance is written from only what you type. Please read it and change anything that is not true to them.</p>
+</details>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+try{const s=JSON.parse(localStorage.getItem('yd')||'{}');if(s.url)$('url').value=s.url;if(s.model)$('model').value=s.model}catch(e){}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function chips(){
+ const out=[];
+ $('foods').value.split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>out.push('🍲 '+x));
+ $('songs').value.split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>out.push('🎵 '+x));
+ $('oChips').innerHTML=out.map(x=>`<span class="chip">${esc(x)}</span>`).join('');
+}
+function prompt_(){
+ const who=$('who').value.trim();
+ return `Write a short, warm remembrance (about 120-180 words) in ${$('lang').value}, written in the first person by ${who?`their ${who}`:'a loved one'}, about ${$('name').value}.
+Use ONLY these facts and do not invent any others (no dates, places, relatives or events):
+- Favourite foods: ${$('foods').value||'not given'}
+- Favourite songs: ${$('songs').value||'not given'}
+- A memory: ${$('story').value||'not given'}
+Tone: gentle, loving and a little bit humorous where the memory is. Do not pretend to be ${$('name').value} and do not claim to speak with them. No title, no notes. Output only the remembrance.`;
+}
+$('go').onclick=async()=>{
+ if(!$('name').value.trim()){$('status').textContent='Please type their name first.';return}
+ try{localStorage.setItem('yd',JSON.stringify({url:$('url').value,model:$('model').value}))}catch(e){}
+ $('go').disabled=true;$('status').textContent='Writing… (first run can take a minute)';
+ $('oName').textContent=$('name').value;$('oYears').textContent=$('years').value;chips();
+ $('text').textContent='';$('ofrenda').hidden=false;
+ try{
+  const r=await fetch($('url').value.replace(/\/$/,'')+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({model:$('model').value,stream:true,messages:[{role:'user',content:prompt_()}]})});
+  if(!r.ok)throw new Error('Server said '+r.status);
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+  for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+   let i;while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+    if(line){try{const j=JSON.parse(line);if(j.message)$('text').textContent+=j.message.content}catch(e){}}}}
+  $('status').textContent='Please read it and edit anything that is not true to them. You can click the text to change it.';
+  $('text').contentEditable='true';
+ }catch(e){
+  $('ofrenda').hidden=!$('text').textContent;
+  $('status').textContent='Could not reach the model. Is Ollama running? ('+e.message+')';
+ }
+ $('go').disabled=false;
+};
+$('print').onclick=()=>window.print();
+$('copy').onclick=async()=>{await navigator.clipboard.writeText($('oName').textContent+'\n\n'+$('text').textContent);$('copy').textContent='Copied!';setTimeout(()=>$('copy').textContent='Copy',1500)};
+</script>
+</body>
+</html>
